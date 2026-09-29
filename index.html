@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel tools</title>
+  <style>
+    :root {
+      --bg: #10110e;
+      --panel: #181a14;
+      --ink: #f3f1e6;
+      --muted: #9b9c90;
+      --line: #34382d;
+      --accent: #dff25a;
+      --accent-ink: #17190d;
+      --warn: #ffc14d;
+      --good: #c6e67a;
+      --hot: #242816;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 650;
+      letter-spacing: -0.04em;
+    }
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+    p { margin: 0; }
+
+    .lede {
+      margin-top: 6px;
+      max-width: 62ch;
+      color: var(--muted);
+    }
+
+.mark {
+  display: grid;
+  grid-template-columns: 14px 14px;
+  gap: 4px;
+  width: max-content;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+    .mark i {
+      width: 14px;
+      height: 14px;
+      display: block;
+      background: var(--accent);
+    }
+
+    .mark i:nth-child(2) { background: #f08a3a; }
+    .mark i:nth-child(3) { background: #3ec6c0; }
+    .mark i:nth-child(4) { background: #f3f1e6; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.kicker {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+    .explain {
+      color: var(--muted);
+      margin: 0 0 14px;
+    }
+
+    .drops {
+      display: grid;
+    }
+
+    .drop {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-height: 108px;
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #12140f;
+      cursor: pointer;
+    }
+
+    .drop:hover,
+    .drop.hot,
+    .drop:focus-within {
+      border-color: var(--accent);
+      background: var(--hot);
+    }
+
+    .drop strong { font-weight: 650; }
+
+    .drop span,
+    .file-name {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .drop input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .status {
+      min-height: 2.8em;
+      margin: 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status.warn { color: var(--warn); }
+    .status.good { color: var(--good); }
+
+    .stage {
+      overflow: auto;
+      max-height: 560px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background-color: #14160f;
+      background-image:
+        linear-gradient(45deg, #22251c 25%, transparent 25%),
+        linear-gradient(-45deg, #22251c 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #22251c 75%),
+        linear-gradient(-45deg, transparent 75%, #22251c 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .toolbar, .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .frame-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+    button.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    button[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible,
+    .drop:focus-within {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      min-height: 48px;
+    }
+
+    .swatches i {
+      display: block;
+      aspect-ratio: 1;
+      border-radius: 3px;
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+    }
+
+    .count {
+      font-variant-numeric: tabular-nums;
+      font-size: 32px;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .count small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0;
+      font-weight: 500;
+    }
+
+    @media (max-width: 860px) {
+      .grid, header { grid-template-columns: 1fr; display: grid; }
+      header { align-items: start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Pixel tools</h1>
+        <p class="lede">Place a small pixel-art image onto the coordinate map, with each pixel copied as a hard 10×10 square, and turn a .cube LUT into an Aseprite palette.</p>
+      </div>
+      <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <div class="section-head">
+          <h2>Place pixels</h2>
+          <span class="kicker">PNG, BMP, or GIF</span>
+        </div>
+        <p class="explain">Each coordinate takes the next 2×2 pixels. Every pixel is copied into a 10×10 square, so the cell is a sharp 20×20 rectangle. A picture that is an exact multiple of the map, such as 2× or 3×, is shrunk by taking one pixel from each block. A strip or a GIF exports one 1920×1080 PNG per frame.</p>
+        <div class="drops">
+          <label class="drop" id="image-drop">
+            <strong>Drop the pixel art</strong>
+            <span class="file-name" id="image-name">PNG, BMP, or GIF</span>
+            <input id="image-input" type="file" accept=".png,.bmp,.gif,image/png,image/bmp,image/gif">
+          </label>
+        </div>
+        <p class="status" id="place-status" role="status">Loading the coordinate map…</p>
+        <div class="stage" id="stage" hidden>
+          <canvas id="preview"></canvas>
+        </div>
+        <div class="toolbar">
+          <button type="button" id="download-png" disabled>Download PNG</button>
+          <button type="button" class="ghost" id="frame-prev" hidden>Previous</button>
+          <span class="frame-label" id="frame-label" hidden></span>
+          <button type="button" class="ghost" id="frame-next" hidden>Next</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Cube palette</h2>
+          <span class="kicker">Aseprite</span>
+        </div>
+        <p class="explain">Reads every color the LUT writes out and keeps each RGB value once. Load the .gpl file in Aseprite from the palette menu.</p>
+        <label class="drop" id="cube-drop">
+          <strong>Drop a .cube file</strong>
+          <span class="file-name" id="cube-name">LUT file</span>
+          <input id="cube-input" type="file" accept=".cube,.CUBE">
+        </label>
+        <p class="status" id="cube-status" role="status">No LUT loaded yet.</p>
+        <p class="count" id="cube-count" hidden>0<small>unique colors</small></p>
+        <div class="swatches" id="swatches"></div>
+        <div class="actions">
+          <button type="button" id="download-gpl" disabled>Download .gpl</button>
+          <button type="button" class="ghost" id="download-sheet" disabled>Download PNG sheet</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const BLOCK = 2;
+    const SCALE = 10;
+    const STAMP = BLOCK * SCALE;
+    const OUTPUT_WIDTH = 1920;
+    const OUTPUT_HEIGHT = 1080;
+    const PREVIEW_ZOOM = 2;
+
+    const BUNDLED_CSV = `0x;0y;1x;1y;2x;2y;3x;3y;4x;4y;5x;5y;6x;6y;7x;7y;8x;8y;9x;9y;10x;10y;11x;11y;12x;12y;13x;13y;14x;14y;15x;15y
+753;156;779;156;810;156;835;156;864;156;890;156;920;156;944;156;977;156;1000;156;1030;156;1057;156;1087;156;1111;156;1142;156;1167;156
+753;200;779;200;810;200;835;200;864;200;890;200;920;200;944;200;977;200;1000;200;1030;200;1057;200;1087;200;1111;200;1142;200;1167;200
+753;244;779;244;810;244;835;244;864;244;890;244;920;244;944;244;977;244;1000;244;1030;244;1057;244;1087;244;1111;244;1142;244;1167;244
+753;288;779;288;810;288;835;288;864;288;890;288;920;288;944;288;977;288;1000;288;1030;288;1057;288;1087;288;1111;288;1142;288;1167;288
+753;332;779;332;810;332;835;332;864;332;890;332;920;332;944;332;977;332;1000;332;1030;332;1057;332;1087;332;1111;332;1142;332;1167;332
+753;376;779;376;810;376;835;376;864;376;890;376;920;376;944;376;977;376;1000;376;1030;376;1057;376;1087;376;1111;376;1142;376;1167;376
+753;421;779;421;810;421;835;421;864;421;890;421;920;421;944;421;977;421;1000;421;1030;421;1057;421;1087;421;1111;421;1142;421;1167;421
+753;465;779;465;810;465;835;465;864;465;890;465;920;465;944;465;977;465;1000;465;1030;465;1057;465;1087;465;1111;465;1142;465;1167;465
+753;509;779;509;810;509;835;509;864;509;890;509;920;509;944;509;977;509;1000;509;1030;509;1057;509;1087;509;1111;509;1142;509;1167;509
+753;553;779;553;810;553;835;553;864;553;890;553;920;553;944;553;977;553;1000;553;1030;553;1057;553;1087;553;1111;553;1142;553;1167;553
+753;597;779;597;810;597;835;597;864;597;890;597;920;597;944;597;977;597;1000;597;1030;597;1057;597;1087;597;1111;597;1142;597;1167;597
+753;641;779;641;810;641;835;641;864;641;890;641;920;641;944;641;977;641;1000;641;1030;641;1057;641;1087;641;1111;641;1142;641;1167;641
+753;686;779;686;810;686;835;686;864;686;890;686;920;686;944;686;977;686;1000;686;1030;686;1057;686;1087;686;1111;686;1142;686;1167;686`;
+
+    const place = {
+      image: null,
+      imageName: "pixels",
+      fileLabel: "",
+      grid: null,
+      sources: null,
+      frames: [],
+      frameIndex: 0,
+      canvas: null
+    };
+
+    const palette = {
+      colors: null,
+      name: "palette",
+      fileName: "palette"
+    };
+
+    function clampByte(value) {
+      return Math.max(0, Math.min(255, value));
+    }
+
+    function hex(r, g, b) {
+      return "#" + [r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("");
+    }
+
+    function delimiterOf(line) {
+      const semis = (line.match(/;/g) || []).length;
+      const commas = (line.match(/,/g) || []).length;
+      return semis >= commas ? ";" : ",";
+    }
+
+    function parseCoords(text) {
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) throw new Error("The CSV is empty.");
+      const delimiter = delimiterOf(lines[0]);
+      let start = 0;
+      if (/[A-Za-z]/.test(lines[0])) start = 1;
+      const grid = [];
+      for (let i = start; i < lines.length; i++) {
+        const cells = lines[i].split(delimiter).map((cell) => cell.trim()).filter((cell) => cell.length);
+        const pairs = [];
+        for (let j = 0; j + 1 < cells.length; j += 2) {
+          const x = Number(cells[j]);
+          const y = Number(cells[j + 1]);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            throw new Error("Row " + (i + 1) + " has a coordinate that is not a number.");
+          }
+          pairs.push({ x: Math.round(x), y: Math.round(y) });
+        }
+        if (pairs.length) grid.push(pairs);
+      }
+      if (!grid.length) throw new Error("No coordinates found in the CSV.");
+      return grid;
+    }
+
+    function gridSize(grid) {
+      return {
+        rows: grid.length,
+        cols: grid.reduce((max, row) => Math.max(max, row.length), 0)
+      };
+    }
+
+    function parseBmp(buffer) {
+      const view = new DataView(buffer);
+      if (buffer.byteLength < 54 || view.getUint16(0, true) !== 0x4d42) {
+        throw new Error("That file is not a BMP.");
+      }
+      const pixelOffset = view.getUint32(10, true);
+      const dibSize = view.getUint32(14, true);
+      if (dibSize < 40) throw new Error("This BMP header is not supported. Export a PNG instead.");
+      const width = view.getInt32(18, true);
+      let height = view.getInt32(22, true);
+      const topDown = height < 0;
+      height = Math.abs(height);
+      const bpp = view.getUint16(28, true);
+      const compression = view.getUint32(30, true);
+      if (compression !== 0) throw new Error("Compressed BMPs are not supported. Export a PNG instead.");
+      if (bpp !== 8 && bpp !== 24 && bpp !== 32) {
+        throw new Error("Use an 8-bit, 24-bit, or 32-bit BMP, or a PNG.");
+      }
+      const bytes = new Uint8Array(buffer);
+      let paletteColors = null;
+      if (bpp === 8) {
+        const colorsUsed = view.getUint32(46, true) || 256;
+        const paletteOffset = 14 + dibSize;
+        paletteColors = bytes.subarray(paletteOffset, paletteOffset + colorsUsed * 4);
+      }
+      const stride = Math.floor((bpp * width + 31) / 32) * 4;
+      const data = new Uint8ClampedArray(width * height * 4);
+      for (let y = 0; y < height; y++) {
+        const srcRow = pixelOffset + (topDown ? y : height - 1 - y) * stride;
+        for (let x = 0; x < width; x++) {
+          const di = (y * width + x) * 4;
+          if (bpp === 8) {
+            const index = bytes[srcRow + x] * 4;
+            data[di] = paletteColors[index + 2];
+            data[di + 1] = paletteColors[index + 1];
+            data[di + 2] = paletteColors[index];
+            data[di + 3] = 255;
+          } else if (bpp === 24) {
+            const p = srcRow + x * 3;
+            data[di] = bytes[p + 2];
+            data[di + 1] = bytes[p + 1];
+            data[di + 2] = bytes[p];
+            data[di + 3] = 255;
+          } else {
+            const p = srcRow + x * 4;
+            data[di] = bytes[p + 2];
+            data[di + 1] = bytes[p + 1];
+            data[di + 2] = bytes[p];
+            data[di + 3] = bytes[p + 3];
+          }
+        }
+      }
+      if (bpp === 32) {
+        let visible = false;
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] !== 0) {
+            visible = true;
+            break;
+          }
+        }
+        if (!visible) {
+          for (let i = 3; i < data.length; i += 4) data[i] = 255;
+        }
+      }
+      return { width, height, data };
+    }
+
+    function skipSubBlocks(bytes, offset) {
+      while (offset < bytes.length) {
+        const size = bytes[offset++];
+        if (size === 0) break;
+        offset += size;
+      }
+      return offset;
+    }
+
+    function readSubBlocks(bytes, offset) {
+      const chunks = [];
+      let total = 0;
+      while (offset < bytes.length) {
+        const size = bytes[offset++];
+        if (size === 0) break;
+        chunks.push(bytes.subarray(offset, offset + size));
+        total += size;
+        offset += size;
+      }
+      const data = new Uint8Array(total);
+      let at = 0;
+      for (const chunk of chunks) {
+        data.set(chunk, at);
+        at += chunk.length;
+      }
+      return { data, next: offset };
+    }
+
+    function lzwDecode(data, minCodeSize, pixelCount) {
+      if (minCodeSize < 2 || minCodeSize > 8) throw new Error("Could not read that GIF.");
+      const clearCode = 1 << minCodeSize;
+      const eoiCode = clearCode + 1;
+      const output = new Uint8Array(pixelCount);
+      let outIndex = 0;
+      let codeSize = minCodeSize + 1;
+      let nextCode = eoiCode + 1;
+      let dict = [];
+      let buffer = 0;
+      let bits = 0;
+      let pos = 0;
+      let prev = null;
+
+      function resetDict() {
+        dict = [];
+        codeSize = minCodeSize + 1;
+        nextCode = eoiCode + 1;
+      }
+
+      function readCode() {
+        while (bits < codeSize) {
+          if (pos >= data.length) return null;
+          buffer |= data[pos++] << bits;
+          bits += 8;
+        }
+        const code = buffer & ((1 << codeSize) - 1);
+        buffer >>= codeSize;
+        bits -= codeSize;
+        return code;
+      }
+
+      function entryFor(code) {
+        if (code < clearCode) return Uint8Array.of(code);
+        return dict[code - eoiCode - 1];
+      }
+
+      while (outIndex < pixelCount) {
+        const code = readCode();
+        if (code === null || code === eoiCode) break;
+        if (code === clearCode) {
+          resetDict();
+          prev = null;
+          continue;
+        }
+        let entry;
+        if (code < nextCode) {
+          entry = entryFor(code);
+        } else if (code === nextCode && prev) {
+          entry = new Uint8Array(prev.length + 1);
+          entry.set(prev);
+          entry[prev.length] = prev[0];
+        } else {
+          throw new Error("Could not read that GIF.");
+        }
+        if (!entry) throw new Error("Could not read that GIF.");
+        const room = Math.min(entry.length, pixelCount - outIndex);
+        output.set(entry.subarray(0, room), outIndex);
+        outIndex += room;
+        if (prev && nextCode < 4096) {
+          const combined = new Uint8Array(prev.length + 1);
+          combined.set(prev);
+          combined[prev.length] = entry[0];
+          dict[nextCode - eoiCode - 1] = combined;
+          nextCode++;
+          if (nextCode === (1 << codeSize) && codeSize < 12) codeSize++;
+        }
+        prev = entry;
+      }
+      return output;
+    }
+
+    function gifRows(height, interlaced) {
+      if (!interlaced) return null;
+      const rows = new Array(height);
+      let index = 0;
+      const passes = [[0, 8], [4, 8], [2, 4], [1, 2]];
+      for (const [start, step] of passes) {
+        for (let y = start; y < height; y += step) rows[index++] = y;
+      }
+      return rows;
+    }
+
+    function paintGif(canvas, screenW, screenH, indices, width, height, left, top, palette, transparent, interlaced) {
+      const rows = gifRows(height, interlaced);
+      for (let i = 0; i < indices.length; i++) {
+        const localY = rows ? rows[Math.floor(i / width)] : Math.floor(i / width);
+        const localX = i % width;
+        const x = left + localX;
+        const y = top + localY;
+        if (x < 0 || y < 0 || x >= screenW || y >= screenH) continue;
+        const colorIndex = indices[i];
+        if (colorIndex === transparent) continue;
+        const paletteAt = colorIndex * 3;
+        const di = (y * screenW + x) * 4;
+        canvas[di] = palette[paletteAt] || 0;
+        canvas[di + 1] = palette[paletteAt + 1] || 0;
+        canvas[di + 2] = palette[paletteAt + 2] || 0;
+        canvas[di + 3] = 255;
+      }
+    }
+
+    function clearGifRect(canvas, screenW, screenH, left, top, width, height) {
+      const x0 = Math.max(0, left);
+      const y0 = Math.max(0, top);
+      const x1 = Math.min(screenW, left + width);
+      const y1 = Math.min(screenH, top + height);
+      for (let y = y0; y < y1; y++) {
+        canvas.fill(0, (y * screenW + x0) * 4, (y * screenW + x1) * 4);
+      }
+    }
+
+    function parseGif(buffer) {
+      const bytes = new Uint8Array(buffer);
+      const view = new DataView(buffer);
+      const header = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
+      if (header !== "GIF87a" && header !== "GIF89a") throw new Error("That file is not a GIF.");
+      const screenW = view.getUint16(6, true);
+      const screenH = view.getUint16(8, true);
+      const packed = bytes[10];
+      let offset = 13;
+      let globalPalette = null;
+      if (packed & 0x80) {
+        const count = 1 << ((packed & 7) + 1);
+        globalPalette = bytes.subarray(offset, offset + count * 3);
+        offset += count * 3;
+      }
+      const canvas = new Uint8ClampedArray(screenW * screenH * 4);
+      const frames = [];
+      let disposal = 0;
+      let transparent = -1;
+      while (offset < bytes.length) {
+        const marker = bytes[offset++];
+        if (marker === 0x3b) break;
+        if (marker === 0x21) {
+          const label = bytes[offset++];
+          if (label === 0xf9) {
+            offset++;
+            const graphicPacked = bytes[offset++];
+            offset += 2;
+            const colorIndex = bytes[offset++];
+            offset++;
+            disposal = (graphicPacked >> 2) & 7;
+            transparent = (graphicPacked & 1) ? colorIndex : -1;
+          } else {
+            offset = skipSubBlocks(bytes, offset);
+          }
+          continue;
+        }
+        if (marker !== 0x2c) break;
+        const left = view.getUint16(offset, true);
+        const top = view.getUint16(offset + 2, true);
+        const width = view.getUint16(offset + 4, true);
+        const height = view.getUint16(offset + 6, true);
+        offset += 8;
+        const imagePacked = bytes[offset++];
+        let palette = globalPalette;
+        if (imagePacked & 0x80) {
+          const count = 1 << ((imagePacked & 7) + 1);
+          palette = bytes.subarray(offset, offset + count * 3);
+          offset += count * 3;
+        }
+        if (!palette) throw new Error("That GIF has no color table.");
+        const minCodeSize = bytes[offset++];
+        const lzw = readSubBlocks(bytes, offset);
+        offset = lzw.next;
+        const indices = lzwDecode(lzw.data, minCodeSize, width * height);
+        const snapshot = disposal === 3 ? canvas.slice() : null;
+        paintGif(canvas, screenW, screenH, indices, width, height, left, top, palette, transparent, (imagePacked & 0x40) !== 0);
+        frames.push({ width: screenW, height: screenH, data: canvas.slice() });
+        if (disposal === 2) clearGifRect(canvas, screenW, screenH, left, top, width, height);
+        else if (disposal === 3 && snapshot) canvas.set(snapshot);
+        disposal = 0;
+        transparent = -1;
+      }
+      if (!frames.length) throw new Error("That GIF has no frames.");
+      return frames;
+    }
+
+    function sameScale(width, height, expectedW, expectedH) {
+      if (expectedW <= 0 || expectedH <= 0) return 0;
+      if (width % expectedW !== 0 || height % expectedH !== 0) return 0;
+      const scaleX = width / expectedW;
+      const scaleY = height / expectedH;
+      return scaleX === scaleY ? scaleX : 0;
+    }
+
+    function cropImage(image, x, y, width, height) {
+      const data = new Uint8ClampedArray(width * height * 4);
+      for (let row = 0; row < height; row++) {
+        const from = ((y + row) * image.width + x) * 4;
+        data.set(image.data.subarray(from, from + width * 4), row * width * 4);
+      }
+      return { width, height, data };
+    }
+
+    function downsample(image, scale) {
+      if (scale <= 1) return image;
+      const width = image.width / scale;
+      const height = image.height / scale;
+      const data = new Uint8ClampedArray(width * height * 4);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const source = (y * scale * image.width + x * scale) * 4;
+          const dest = (y * width + x) * 4;
+          data[dest] = image.data[source];
+          data[dest + 1] = image.data[source + 1];
+          data[dest + 2] = image.data[source + 2];
+          data[dest + 3] = image.data[source + 3];
+        }
+      }
+      return { width, height, data };
+    }
+
+    function splitStrip(image, expectedW, expectedH) {
+      if (sameScale(image.width, image.height, expectedW, expectedH)) return [image];
+      if (image.height % expectedH === 0) {
+        const scale = image.height / expectedH;
+        const frameWidth = expectedW * scale;
+        if (frameWidth > 0 && image.width % frameWidth === 0 && image.width / frameWidth > 1) {
+          const count = image.width / frameWidth;
+          const frames = [];
+          for (let index = 0; index < count; index++) {
+            frames.push(cropImage(image, index * frameWidth, 0, frameWidth, image.height));
+          }
+          return frames;
+        }
+      }
+      if (image.width % expectedW === 0) {
+        const scale = image.width / expectedW;
+        const frameHeight = expectedH * scale;
+        if (frameHeight > 0 && image.height % frameHeight === 0 && image.height / frameHeight > 1) {
+          const count = image.height / frameHeight;
+          const frames = [];
+          for (let index = 0; index < count; index++) {
+            frames.push(cropImage(image, 0, index * frameHeight, image.width, frameHeight));
+          }
+          return frames;
+        }
+      }
+      return [image];
+    }
+
+    function expandSources(images, expectedW, expectedH) {
+      const frames = [];
+      for (const image of images) {
+        for (const slice of splitStrip(image, expectedW, expectedH)) {
+          const scale = sameScale(slice.width, slice.height, expectedW, expectedH);
+          frames.push({
+            image: scale > 1 ? downsample(slice, scale) : slice,
+            scale,
+            sourceWidth: slice.width,
+            sourceHeight: slice.height
+          });
+        }
+      }
+      return frames;
+    }
+
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let crc = n;
+        for (let k = 0; k < 8; k++) crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+        table[n] = crc >>> 0;
+      }
+      return table;
+    })();
+
+    function crc32(bytes) {
+      let crc = 0xffffffff;
+      for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    function makeZip(files) {
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+      for (const file of files) {
+        const nameBytes = new TextEncoder().encode(file.name);
+        const checksum = crc32(file.data);
+        const local = new DataView(new ArrayBuffer(30));
+        local.setUint32(0, 0x04034b50, true);
+        local.setUint16(4, 20, true);
+        local.setUint16(8, 0, true);
+        local.setUint32(14, checksum, true);
+        local.setUint32(18, file.data.length, true);
+        local.setUint32(22, file.data.length, true);
+        local.setUint16(26, nameBytes.length, true);
+        const central = new DataView(new ArrayBuffer(46));
+        central.setUint32(0, 0x02014b50, true);
+        central.setUint16(4, 20, true);
+        central.setUint16(6, 20, true);
+        central.setUint16(10, 0, true);
+        central.setUint32(16, checksum, true);
+        central.setUint32(20, file.data.length, true);
+        central.setUint32(24, file.data.length, true);
+        central.setUint16(28, nameBytes.length, true);
+        central.setUint32(42, offset, true);
+        localParts.push(new Uint8Array(local.buffer), nameBytes, file.data);
+        centralParts.push(new Uint8Array(central.buffer), nameBytes);
+        offset += 30 + nameBytes.length + file.data.length;
+      }
+      const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+      const end = new DataView(new ArrayBuffer(22));
+      end.setUint32(0, 0x06054b50, true);
+      end.setUint16(8, files.length, true);
+      end.setUint16(10, files.length, true);
+      end.setUint32(12, centralSize, true);
+      end.setUint32(16, offset, true);
+      return new Blob([...localParts, ...centralParts, new Uint8Array(end.buffer)], { type: "application/zip" });
+    }
+
+    async function loadRaster(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".bmp") || file.type === "image/bmp") {
+        return parseBmp(await file.arrayBuffer());
+      }
+      let bitmap;
+      try {
+        bitmap = await createImageBitmap(file, {
+          colorSpaceConversion: "none",
+          premultiplyAlpha: "none"
+        });
+      } catch {
+        bitmap = await createImageBitmap(file);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(bitmap, 0, 0);
+      if (bitmap.close) bitmap.close();
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      return { width: image.width, height: image.height, data: image.data };
+    }
+
+    function upscale(image, grid) {
+      const { rows, cols } = gridSize(grid);
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = 0;
+      let maxY = 0;
+      for (const row of grid) {
+        for (const point of row) {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x + STAMP);
+          maxY = Math.max(maxY, point.y + STAMP);
+        }
+      }
+      if (!Number.isFinite(minX)) throw new Error("No coordinates found in the CSV.");
+      if (minX < 0 || minY < 0 || maxX > OUTPUT_WIDTH || maxY > OUTPUT_HEIGHT) {
+        throw new Error("A block falls outside the 1920×1080 image.");
+      }
+      const imageData = new ImageData(OUTPUT_WIDTH, OUTPUT_HEIGHT);
+      const dst = imageData.data;
+      const src = image.data;
+      for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[row].length; col++) {
+          const origin = grid[row][col];
+          for (let dy = 0; dy < BLOCK; dy++) {
+            for (let dx = 0; dx < BLOCK; dx++) {
+              const sx = col * BLOCK + dx;
+              const sy = row * BLOCK + dy;
+              let r = 0;
+              let g = 0;
+              let b = 0;
+              let a = 0;
+              if (sx < image.width && sy < image.height) {
+                const si = (sy * image.width + sx) * 4;
+                r = src[si];
+                g = src[si + 1];
+                b = src[si + 2];
+                a = src[si + 3];
+              }
+              const px = origin.x + dx * SCALE;
+              const py = origin.y + dy * SCALE;
+              for (let fy = 0; fy < SCALE; fy++) {
+                for (let fx = 0; fx < SCALE; fx++) {
+                  const di = ((py + fy) * OUTPUT_WIDTH + (px + fx)) * 4;
+                  dst[di] = r;
+                  dst[di + 1] = g;
+                  dst[di + 2] = b;
+                  dst[di + 3] = a;
+                }
+              }
+            }
+          }
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = OUTPUT_WIDTH;
+      canvas.height = OUTPUT_HEIGHT;
+      canvas.getContext("2d").putImageData(imageData, 0, 0);
+      return {
+        canvas,
+        imageData,
+        width: OUTPUT_WIDTH,
+        height: OUTPUT_HEIGHT,
+        minX,
+        minY,
+        maxX,
+        maxY,
+        rows,
+        cols,
+        expectedW: cols * BLOCK,
+        expectedH: rows * BLOCK
+      };
+    }
+
+    function parseCube(text) {
+      const titleMatch = text.match(/^TITLE\s+"([^"]*)"/m);
+      const title = titleMatch ? titleMatch[1] : "Cube palette";
+      const triples = [];
+      let maxComp = 0;
+      for (const raw of text.split(/\r?\n/)) {
+        const line = raw.trim();
+        if (!line || line.startsWith("#")) continue;
+        const parts = line.split(/\s+/);
+        if (parts.length < 3) continue;
+        const r = Number(parts[0]);
+        const g = Number(parts[1]);
+        const b = Number(parts[2]);
+        if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) continue;
+        triples.push([r, g, b]);
+        maxComp = Math.max(maxComp, Math.abs(r), Math.abs(g), Math.abs(b));
+      }
+      if (!triples.length) throw new Error("No colors found in that .cube file.");
+      const toByte = maxComp <= 1.001
+        ? (value) => clampByte(Math.round(value * 255))
+        : (value) => clampByte(Math.round(value));
+      const colors = [];
+      const seen = new Set();
+      for (const [r, g, b] of triples) {
+        const rgb = [toByte(r), toByte(g), toByte(b)];
+        const key = (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+        if (seen.has(key)) continue;
+        seen.add(key);
+        colors.push(rgb);
+      }
+      return { title, colors, entries: triples.length };
+    }
+
+    function paletteColumns(count) {
+      if (count <= 1) return 1;
+      const root = Math.round(Math.sqrt(count));
+      for (let columns = root; columns >= 4; columns--) {
+        if (count % columns === 0) return columns;
+      }
+      return Math.min(8, count);
+    }
+
+    function toGpl(colors, name) {
+      const lines = [
+        "GIMP Palette",
+        "Name: " + name,
+        "Columns: " + paletteColumns(colors.length),
+        "#"
+      ];
+      for (const [r, g, b] of colors) {
+        lines.push(
+          String(r).padStart(3, " ") + " " +
+          String(g).padStart(3, " ") + " " +
+          String(b).padStart(3, " ") + "\t" + hex(r, g, b)
+        );
+      }
+      return lines.join("\n") + "\n";
+    }
+
+    function paletteSheet(colors) {
+      const columns = paletteColumns(colors.length);
+      const rows = Math.ceil(colors.length / columns);
+      const canvas = document.createElement("canvas");
+      canvas.width = columns;
+      canvas.height = rows;
+      const image = canvas.getContext("2d").createImageData(columns, rows);
+      colors.forEach(([r, g, b], index) => {
+        const offset = index * 4;
+        image.data[offset] = r;
+        image.data[offset + 1] = g;
+        image.data[offset + 2] = b;
+        image.data[offset + 3] = 255;
+      });
+      canvas.getContext("2d").putImageData(image, 0, 0);
+      return canvas;
+    }
+
+    function setStatus(id, message, kind) {
+      const node = document.getElementById(id);
+      node.textContent = message;
+      node.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function downloadBlob(blob, filename) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function safeName(name) {
+      const cleaned = name.replace(/[^\w.-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+      return cleaned.slice(0, 80) || "palette";
+    }
+
+    function setFrameControls(count, index) {
+      const many = count > 1;
+      document.getElementById("frame-prev").hidden = !many;
+      document.getElementById("frame-next").hidden = !many;
+      const label = document.getElementById("frame-label");
+      label.hidden = !many;
+      label.textContent = many ? (index + 1) + " / " + count : "";
+      document.getElementById("download-png").textContent = many ? "Download " + count + " PNGs" : "Download PNG";
+    }
+
+    function renderPlacement() {
+      const download = document.getElementById("download-png");
+      if (!place.grid) {
+        download.disabled = true;
+        return;
+      }
+      const { rows, cols } = gridSize(place.grid);
+      const expectedW = cols * BLOCK;
+      const expectedH = rows * BLOCK;
+      if (!place.sources) {
+        place.frames = [];
+        place.canvas = null;
+        download.disabled = true;
+        document.getElementById("stage").hidden = true;
+        setFrameControls(0, 0);
+        setStatus(
+          "place-status",
+          "Coordinate map has " + cols + " columns and " + rows + " rows. Drop a " + expectedW + "×" + expectedH + " image."
+        );
+        return;
+      }
+      const normalized = expandSources(place.sources, expectedW, expectedH);
+      place.frames = normalized.map((frame) => ({
+        ...frame,
+        result: upscale(frame.image, place.grid)
+      }));
+      if (place.frameIndex >= place.frames.length) place.frameIndex = 0;
+      showFrame(place.frameIndex);
+    }
+
+    function showFrame(index) {
+      const frame = place.frames[index];
+      const result = frame.result;
+      place.frameIndex = index;
+      place.image = frame.image;
+      place.canvas = result.canvas;
+      const cropW = result.maxX - result.minX;
+      const cropH = result.maxY - result.minY;
+      const preview = document.getElementById("preview");
+      preview.width = cropW;
+      preview.height = cropH;
+      const crop = preview.getContext("2d").createImageData(cropW, cropH);
+      for (let y = 0; y < cropH; y++) {
+        const from = ((result.minY + y) * result.width + result.minX) * 4;
+        crop.data.set(result.imageData.data.subarray(from, from + cropW * 4), y * cropW * 4);
+      }
+      preview.getContext("2d").putImageData(crop, 0, 0);
+      applyZoom();
+      document.getElementById("stage").hidden = false;
+      document.getElementById("download-png").disabled = false;
+      setFrameControls(place.frames.length, index);
+
+      const sizeLabel = place.frames.length > 1
+        ? place.frames.length + " frames"
+        : frame.sourceWidth + "×" + frame.sourceHeight;
+      if (place.fileLabel) {
+        document.getElementById("image-name").textContent = place.fileLabel + " · " + sizeLabel;
+      }
+
+      const { rows, cols } = gridSize(place.grid);
+      let message = "";
+      if (place.frames.length > 1) message += place.frames.length + " frames. ";
+      if (frame.scale > 1) {
+        message += "Shrunk " + frame.scale + "× from " + frame.sourceWidth + "×" + frame.sourceHeight +
+          " to " + result.expectedW + "×" + result.expectedH + ". ";
+      }
+      message += "Placed " + rows + "×" + cols + " blocks. Each block is " + STAMP + "×" + STAMP +
+        ". Canvas is " + result.width + "×" + result.height + ", with art from (" +
+        result.minX + ", " + result.minY + ").";
+      let kind = "good";
+      if (frame.scale <= 1 && (frame.image.width < result.expectedW || frame.image.height < result.expectedH)) {
+        message = "Image is " + frame.sourceWidth + "×" + frame.sourceHeight +
+          ", and this map expects " + result.expectedW + "×" + result.expectedH +
+          ". Cells past the image are left empty. " + message;
+        kind = "warn";
+      } else if (frame.scale <= 1 && (frame.image.width !== result.expectedW || frame.image.height !== result.expectedH)) {
+        message = "Image is " + frame.sourceWidth + "×" + frame.sourceHeight +
+          ". Using the top-left " + result.expectedW + "×" + result.expectedH + " pixels. " + message;
+        kind = "warn";
+      }
+      setStatus("place-status", message, kind);
+    }
+
+    function applyZoom() {
+      const preview = document.getElementById("preview");
+      preview.style.width = preview.width * PREVIEW_ZOOM + "px";
+      preview.style.height = preview.height * PREVIEW_ZOOM + "px";
+    }
+
+    function renderPalette(result) {
+      palette.colors = result.colors;
+      palette.name = result.title;
+      const count = document.getElementById("cube-count");
+      count.hidden = false;
+      count.firstChild.textContent = String(result.colors.length);
+      const host = document.getElementById("swatches");
+      host.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      for (const [r, g, b] of result.colors) {
+        const swatch = document.createElement("i");
+        swatch.style.background = hex(r, g, b);
+        swatch.title = hex(r, g, b) + "  rgb(" + r + ", " + g + ", " + b + ")";
+        fragment.append(swatch);
+      }
+      host.append(fragment);
+      document.getElementById("download-gpl").disabled = false;
+      document.getElementById("download-sheet").disabled = false;
+      setStatus(
+        "cube-status",
+        result.colors.length + " unique colors from " + result.entries + " LUT entries.",
+        "good"
+      );
+    }
+
+    async function useImage(file) {
+      const lower = file.name.toLowerCase();
+      const isGif = lower.endsWith(".gif") || file.type === "image/gif";
+      const isImage = isGif || lower.endsWith(".png") || lower.endsWith(".bmp") || file.type.startsWith("image/");
+      if (!isImage) {
+        setStatus("place-status", "Drop a PNG, BMP, or GIF.", "warn");
+        return;
+      }
+      place.sources = isGif ? parseGif(await file.arrayBuffer()) : [await loadRaster(file)];
+      place.fileLabel = file.name;
+      place.imageName = file.name.replace(/\.[^.]+$/, "") || "pixels";
+      place.frameIndex = 0;
+      renderPlacement();
+    }
+
+    function useCsv(text) {
+      place.grid = parseCoords(text);
+      renderPlacement();
+    }
+
+    async function useCube(file) {
+      const lower = file.name.toLowerCase();
+      if (!lower.endsWith(".cube")) {
+        setStatus("cube-status", "Drop a .cube LUT file.", "warn");
+        return;
+      }
+      const text = await file.text();
+      const result = parseCube(text);
+      palette.fileName = safeName(file.name.replace(/\.cube$/i, "") || result.title);
+      document.getElementById("cube-name").textContent = file.name;
+      renderPalette(result);
+    }
+
+    function bindFile(input, zone, handler) {
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (file) handler(file).catch((error) => fail(zone, error));
+        input.value = "";
+      });
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        zone.classList.add("hot");
+      });
+      zone.addEventListener("dragleave", () => zone.classList.remove("hot"));
+      zone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        zone.classList.remove("hot");
+        const file = event.dataTransfer.files && event.dataTransfer.files[0];
+        if (file) handler(file).catch((error) => fail(zone, error));
+      });
+    }
+
+    function fail(zone, error) {
+      const statusId = zone.id === "cube-drop" ? "cube-status" : "place-status";
+      setStatus(statusId, error.message || "Could not read that file.", "warn");
+    }
+
+    document.getElementById("download-png").addEventListener("click", async () => {
+      if (!place.frames.length) return;
+      if (place.frames.length === 1) {
+        const blob = await new Promise((resolve) => place.frames[0].result.canvas.toBlob(resolve, "image/png"));
+        if (blob) downloadBlob(blob, place.imageName + "-placed.png");
+        return;
+      }
+      const digits = String(place.frames.length).length;
+      const files = [];
+      for (let index = 0; index < place.frames.length; index++) {
+        const blob = await new Promise((resolve) => place.frames[index].result.canvas.toBlob(resolve, "image/png"));
+        files.push({
+          name: place.imageName + "-" + String(index + 1).padStart(digits, "0") + ".png",
+          data: new Uint8Array(await blob.arrayBuffer())
+        });
+      }
+      downloadBlob(makeZip(files), place.imageName + "-frames.zip");
+    });
+
+    document.getElementById("frame-prev").addEventListener("click", () => {
+      if (place.frameIndex > 0) showFrame(place.frameIndex - 1);
+    });
+
+    document.getElementById("frame-next").addEventListener("click", () => {
+      if (place.frameIndex + 1 < place.frames.length) showFrame(place.frameIndex + 1);
+    });
+
+    document.getElementById("download-gpl").addEventListener("click", () => {
+      if (!palette.colors) return;
+      const blob = new Blob([toGpl(palette.colors, palette.name)], { type: "text/plain" });
+      downloadBlob(blob, palette.fileName + ".gpl");
+    });
+
+    document.getElementById("download-sheet").addEventListener("click", () => {
+      if (!palette.colors) return;
+      paletteSheet(palette.colors).toBlob((blob) => {
+        if (blob) downloadBlob(blob, palette.fileName + "-palette.png");
+      }, "image/png");
+    });
+
+    document.addEventListener("dragover", (event) => event.preventDefault());
+    document.addEventListener("drop", (event) => event.preventDefault());
+
+    bindFile(document.getElementById("image-input"), document.getElementById("image-drop"), useImage);
+    bindFile(document.getElementById("cube-input"), document.getElementById("cube-drop"), useCube);
+
+    fetch("pixel_coords.csv", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("missing");
+        return response.text();
+      })
+      .then((text) => {
+        if (!text.includes(";")) throw new Error("not a coordinate file");
+        return useCsv(text);
+      })
+      .catch(() => useCsv(BUNDLED_CSV));
+
+    window.tools = {
+      parseCoords,
+      parseBmp,
+      parseGif,
+      parseCube,
+      upscale,
+      downsample,
+      splitStrip,
+      expandSources,
+      toGpl,
+      makeZip,
+      loadRaster,
+      useImage,
+      useCsv,
+      useCube
+    };
+  </script>
+</body>
+</html>
